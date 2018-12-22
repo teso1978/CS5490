@@ -1,0 +1,32 @@
+{
+    "name": "cs5490",
+    "version": "1.0.0",
+    "description": "raspberry pi power meter using CS5490 chip",
+    "main": "build/Release/cs5490.node",
+    "homepage": "https://github.com/crjens/CS5490",
+    "scripts": {
+        "install": "/bin/bash ./install.sh"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/crjens/CS5463.git"
+    },
+    "keywords": [
+        "spi",
+        "raspberry",
+        "pi",
+        "raspberrypi",
+        "rpi",
+        "power",
+        "meter",
+        "powermeter",
+        "energy"
+    ],
+    "author": "Craig Jensen",
+    "license": "BSD",
+    "gypfile": true,
+    "dependencies": {
+        "node-gyp": "*",
+        "nan": "^2.0.5"
+    }
+}
