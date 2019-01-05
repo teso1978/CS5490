@@ -1,8 +1,8 @@
 {
-    "name": "cs5490",
+    "name": "CS5490",
     "version": "1.0.0",
     "description": "raspberry pi power meter using CS5490 chip",
-    "main": "build/Release/cs5490.node",
+    "main": "build/Release/CS5490.node",
     "homepage": "https://github.com/crjens/CS5490",
     "scripts": {
         "install": "/bin/bash ./install.sh"
