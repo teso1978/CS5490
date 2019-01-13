@@ -1,6 +1,7 @@
 #include <node_buffer.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include "wiringPi.h"
 #include "wiringSerial.h"
 #include "nan.h"
@@ -48,7 +49,7 @@ long elapsedTime(struct timespec start_time) {
 
 int _Send(char * tx, int txLen, char * rx, int rxLen, bool verbose=false) 
 {
-	int rcount = 0;
+	int rcount = 0; 
 	if (fd == 0) {
         errormsg("device not open");
     }
@@ -77,7 +78,7 @@ int _Send(char * tx, int txLen, char * rx, int rxLen, bool verbose=false)
     {
 		//if (verbose)
 		//	printf("attempting to read %d bytes\n", rxLen);
-        if((rcount = read(fd, rx, rxLen )) < 0) 
+        if((rcount = read(fd, rx, rxLen )) <= 0) 
 		{
 			printf("read err: %s   ret: %d\n", strerror(errno), rcount);
             errormsg("can't read from serial port");
@@ -115,6 +116,7 @@ void Close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 	info.GetReturnValue().Set(Nan::New<Number>(0));
 }
 
+
 void Open(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
 	int ret = 0;
@@ -146,10 +148,12 @@ void Open(const Nan::FunctionCallbackInfo<v8::Value>& info)
 	struct termios options;
 
 	tcgetattr (fd, &options) ;   // Read current options
-	options.c_cc [VMIN]  = 100 ;
-    options.c_cc [VTIME] = 1 ;	// one second (10 deciseconds)
+
+	options.c_cc [VMIN]  = 0 ;
+    options.c_cc [VTIME] = 1 ;	// .1 second (10 deciseconds)
 	tcsetattr (fd, TCSANOW, &options) ;   // Set new options
     
+
 	printf("opened device: %s at %d bps\n", device, baud);
 
 	info.GetReturnValue().Set(Nan::New<Number>(ret));
@@ -161,16 +165,27 @@ void _Instruction(char instruction)
 	_Send(tx, 1, NULL, 0);
 }
 
+char _currentPage = -1;
+void _SelectPage(char page)
+{
+	if (page != _currentPage)
+	{
+		char tx[] = { (char)(0x80 + page) };
+		_Send(tx, 1, NULL, 0);
+		_currentPage = page;
+	}
+}
+
 void _WriteRegister(char page, char registerNum, int value)
 {
-	char pageSelect = 0x80 + page;
 	char WriteCommand = 0x40 + registerNum;
 	char data1 = value & 0xFF;
 	char data2 = (value >> 8) & 0xFF;
 	char data3 = (value >> 16) & 0xFF;
-	char tx[] = {pageSelect, WriteCommand, data1, data2, data3 };
+	char tx[] = { WriteCommand, data1, data2, data3 };
 
-	_Send(tx, 5, NULL, 0);
+	_SelectPage(page);
+	_Send(tx, 4, NULL, 0);
 
 	return;
 }
@@ -178,58 +193,53 @@ void _WriteRegister(char page, char registerNum, int value)
 
 int _ReadRegister(char page, char registerNum)
 {
-	char pageSelect = 0x80 + page;
-	char readCommand = registerNum;
-	char tx[] = {pageSelect, readCommand };
+	char tx[] = { registerNum };
 	char rx[3];
-	
-	_Send(tx, 2, rx, 3);
+
+	_SelectPage(page);
+	_Send(tx, 1, rx, 3);
 
 	return (*(rx + 2) << 16) + (*(rx + 1) << 8) + *rx;
 }
 
 int ReadSamples(char * resultBuffer, int maxSampleCount, int tSettle)
 {
-	// Select page 16
-	char t[] = { 0x90 };
-	_Send(t, 1, NULL, 0);
-
-	char tx[] = { 
-			0x02, 0xFF, 0xFF, 0xFF,	// read inst current
-			0x03  					// read inst voltage
-		};
+	// read 0x02 (Inst current) and 0x03 (Inst voltage)
+	// pad with 0x90 (page select) commands
+	char tx[] = { 0x02, 0x90, 0x90, 0x90, 0x03 };
 	char rx[SAMPLE_SIZE];
 
-	struct timespec startTime;
+	_SelectPage(16);
+
+	struct timespec startTime, start;
 	int sampleCount = 0;
 	while (sampleCount < maxSampleCount)  
 	{
+		start = timer_start();
+
 		char * buf = rx;
 		if (sampleCount >= tSettle)
 			buf = resultBuffer + ((sampleCount-tSettle)*SAMPLE_SIZE);
 
-		int ret = _Send(tx, 5, buf, 6);
-
-		if (ret >= 0) {
-
+		write(fd, tx, 5);
+		read(fd, buf, 6);
+				
+		if (sampleCount >= tSettle) {
 			long elapsed = 0;
 
-			if (sampleCount == 0)
+			if (sampleCount == tSettle)
 				startTime = timer_start();
 			else
 				elapsed = elapsedTime(startTime);
 
 			memcpy(buf + 6, &elapsed, 4);   // timestamp in ns
-			sampleCount++;
 		}
+		sampleCount++;
 
 		// wait at least 0.25 ms so we don't read the same sample twice
-		//while (elapsedTime(start) < 250000)
-		//{
-			//spin
-			//usleep(15);
-		//}
+		while (elapsedTime(start) < 240000) ; // spin
 	}
+	
 	return sampleCount-tSettle;
 }
 
@@ -243,13 +253,6 @@ void ReadCycle(const Nan::FunctionCallbackInfo<v8::Value>& info)
 	if (info.Length() != 1)
 		errormsg("Expected 1 argument - buffer");
 
-	char tx[] = { 
-		0x18, 					  // halt conversions
-		0x80, 					  // select page 0
-		0x57, 0xFF, 0xFF, 0xFF,   // clear status 
-		0xD4 					  // start single conversion
-	};
-
 	Isolate* isolate = info.GetIsolate();
 	Local<Context> context = isolate->GetCurrentContext();
   	Local<Object> out_buffer_obj = info[0]->ToObject(context).ToLocalChecked();
@@ -260,24 +263,33 @@ void ReadCycle(const Nan::FunctionCallbackInfo<v8::Value>& info)
 	out_length = Buffer::Length(out_buffer_obj);
 	int maxSamples = out_length / SAMPLE_SIZE;
 
+	// clear buffers for next run
+	tcflush (fd, TCIOFLUSH);
+
 	// Get sample count and determine expected cycle time
 	int sampleCount = _ReadRegister(16, 51);
 	int tSettle = _ReadRegister(16, 57);
-	
-	// start conversion
-	int ret = _Send(tx, 11, NULL, 0);
-	if (ret < 0)
-		errormsg("clear failed");
 
+	// halt conversions
+	_Instruction(0xD8);
+
+	// clear status
+	_WriteRegister(0, 23, 0xE5557D);
+	//_WriteRegister(0, 23, 0xFFFFFF);
+
+	// start single conversion
+	_Instruction(0xD4);
+	
 	// read instantaneous values 
 	int samplesRead = ReadSamples(out_buffer, MIN(maxSamples+tSettle, sampleCount), tSettle);
-
+	
 	// Poll status until DRDY is set
 	while (!(_ReadRegister(0, 23) & 0x800000))
 	{
 		// spin
-		usleep(100);
+		usleep(250);
 	}
+	
 	return info.GetReturnValue().Set(Nan::New<Number>(samplesRead));
 }
 
