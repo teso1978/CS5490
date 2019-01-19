@@ -149,7 +149,7 @@ void Open(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
 	tcgetattr (fd, &options) ;   // Read current options
 
-	options.c_cc [VMIN]  = 0 ;
+	options.c_cc [VMIN]  = 10 ;
     options.c_cc [VTIME] = 1 ;	// .1 second (10 deciseconds)
 	tcsetattr (fd, TCSANOW, &options) ;   // Set new options
     
