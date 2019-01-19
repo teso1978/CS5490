@@ -138,6 +138,10 @@ void Open(const Nan::FunctionCallbackInfo<v8::Value>& info)
 	
 	int baud = Nan::To<int32_t>(info[1]).FromJust();
 
+	// make sure Tx and Rx are in the correct mode
+	pinModeAlt( 8, 0b100 ); //"alt0"
+    pinModeAlt( 10, 0b100 ); //"alt0"
+
 	fd = serialOpen(device, baud);
 	if (fd < 0) 
 	{
@@ -153,7 +157,6 @@ void Open(const Nan::FunctionCallbackInfo<v8::Value>& info)
     options.c_cc [VTIME] = 1 ;	// .1 second (10 deciseconds)
 	tcsetattr (fd, TCSANOW, &options) ;   // Set new options
     
-
 	printf("opened device: %s at %d bps\n", device, baud);
 
 	info.GetReturnValue().Set(Nan::New<Number>(ret));
