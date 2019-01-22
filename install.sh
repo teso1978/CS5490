@@ -8,6 +8,7 @@ cd ./wiringPi
 cd ../ 
 node-gyp rebuild 
 
+
 # enable UART
 echo '>>> Enable UART'
 sudo raspi-config nonint do_serial 2
