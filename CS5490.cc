@@ -340,6 +340,18 @@ void DigitalPulse(const Nan::FunctionCallbackInfo<v8::Value>& info)
 	info.GetReturnValue().Set(Nan::New<Number>(0));
 }
 
+void DigitalRead(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+	if (info.Length() != 1)
+		errormsg("Expected 1 arguments - pinNum");
+
+	int pin = Nan::To<int>(info[0]).FromJust();
+
+	int result = digitalRead(pin);
+
+	info.GetReturnValue().Set(Nan::New<Number>(result));
+}
+
 void Flush (const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
 	if (fd != 0)
@@ -429,6 +441,7 @@ NAN_MODULE_INIT(InitAll) {
 	Nan::Set(target, Nan::New("Flush").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(Flush)).ToLocalChecked());
 	Nan::Set(target, Nan::New("DigitalWrite").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(DigitalWrite)).ToLocalChecked());
 	Nan::Set(target, Nan::New("DigitalPulse").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(DigitalPulse)).ToLocalChecked());
+	Nan::Set(target, Nan::New("DigitalRead").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(DigitalRead)).ToLocalChecked());
 
 	if (wiringPiSetupPhys () < 0)
 	{
