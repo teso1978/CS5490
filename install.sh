@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Install wiring Pi
-#echo '>>> Install Wiring Pi'
-#git clone git://git.drogon.net/wiringPi 
-#cd ./wiringPi 
-#./build 
-#cd ../ 
-node-gyp rebuild 
+# install wiring pi
+cd /tmp
+wget https://project-downloads.drogon.net/wiringpi-latest.deb
+sudo dpkg -i wiringpi-latest.deb
+cd ~
 
+# build
+node-gyp rebuild 
 
 # enable UART
 echo '>>> Enable UART'
