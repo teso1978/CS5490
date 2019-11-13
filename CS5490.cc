@@ -226,6 +226,9 @@ int ReadSamples(char * resultBuffer, int maxSampleCount, int tSettle)
 
 		write(fd, tx, 5);
 		read(fd, buf, 6);
+		
+		if (sampleCount >= tSettle+1 && 0 == memcmp(buf-10, buf, 6)) 
+                         return sampleCount-tSettle;
 				
 		if (sampleCount >= tSettle) {
 			long elapsed = 0;
