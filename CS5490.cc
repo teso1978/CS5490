@@ -10,7 +10,6 @@ using namespace v8;
 using namespace node;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 static int fd = 0;
 static int SAMPLE_SIZE = 10;
@@ -102,6 +101,13 @@ int _Send(char * tx, int txLen, char * rx, int rxLen, bool verbose=false)
 
 const char* ToCString(const v8::String::Utf8Value& value) {
 	return *value ? *value : "<string conversion failed>";
+}
+
+void DriverVersion(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+	Isolate* isolate = info.GetIsolate();
+	std::string version("CS5490 v1.0");
+	info.GetReturnValue().Set(String::NewFromUtf8( isolate, version.c_str() )); 
 }
 
 void Close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
@@ -445,6 +451,7 @@ NAN_MODULE_INIT(InitAll) {
 	Nan::Set(target, Nan::New("DigitalWrite").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(DigitalWrite)).ToLocalChecked());
 	Nan::Set(target, Nan::New("DigitalPulse").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(DigitalPulse)).ToLocalChecked());
 	Nan::Set(target, Nan::New("DigitalRead").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(DigitalRead)).ToLocalChecked());
+	Nan::Set(target, Nan::New("DriverVersion").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(DriverVersion)).ToLocalChecked());
 
 	if (wiringPiSetupPhys () < 0)
 	{
