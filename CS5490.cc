@@ -107,7 +107,7 @@ void DriverVersion(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
 	Isolate* isolate = info.GetIsolate();
 	std::string version("CS5490 v1.0");
-	info.GetReturnValue().Set(String::NewFromUtf8( isolate, version.c_str() )); 
+	info.GetReturnValue().Set(String::NewFromUtf8( isolate, version.c_str()).ToLocalChecked());
 }
 
 void Close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
