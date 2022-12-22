@@ -1,15 +1,15 @@
 {
     "name": "CS5490",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "raspberry pi power meter using CS5490 chip",
     "main": "build/Release/CS5490.node",
-    "homepage": "https://github.com/crjens/CS5490",
+    "homepage": "https://github.com/teso1978/CS5490",
     "scripts": {
         "install": "/bin/bash ./install.sh"
     },
     "repository": {
         "type": "git",
-        "url": "git://github.com/crjens/CS5463.git"
+        "url": "git://github.com/teso1978/CS5490.git"
     },
     "keywords": [
         "spi",
