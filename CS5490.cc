@@ -148,7 +148,8 @@ void Open(const Nan::FunctionCallbackInfo<v8::Value>& info)
 	pinModeAlt( 8, 0b100 ); //"alt0"
     pinModeAlt( 10, 0b100 ); //"alt0"
 
-	fd = serialOpen(device, baud);
+	//fd = serialOpen(device, baud);
+	fd = serialOpen("/dev/ttyS0",baud);
 	if (fd < 0) 
 	{
 		printf("can't open device: %s at %d bps\n", device, baud);
